@@ -126,6 +126,26 @@ if (!hooks.missing && hooks.value) {
   }
 }
 
+// --- skills/<name>/SKILL.md (optional until PR D): frontmatter name + description ---
+const skillsDir = path.join(root, "skills");
+if (existsSync(skillsDir)) {
+  for (const name of readdirSync(skillsDir)) {
+    const skillFile = path.join(skillsDir, name, "SKILL.md");
+    if (!existsSync(skillFile)) {
+      errors.push(`skills/${name}: missing SKILL.md`);
+      continue;
+    }
+    checked.push(`skills/${name}`);
+    const text = readFileSync(skillFile, "utf8");
+    const fm = text.match(/^---\n([\s\S]*?)\n---/);
+    require(Boolean(fm), `skills/${name}/SKILL.md: missing YAML frontmatter`);
+    if (fm) {
+      require(/\bname:\s*\S/.test(fm[1]), `skills/${name}/SKILL.md: frontmatter needs a name`);
+      require(/\bdescription:\s*\S/.test(fm[1]), `skills/${name}/SKILL.md: frontmatter needs a description`);
+    }
+  }
+}
+
 // --- commands/ (optional until PR B): every file is markdown ---
 const commandsDir = path.join(root, "commands");
 if (existsSync(commandsDir)) {
