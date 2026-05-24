@@ -6,6 +6,11 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "validate": "node scripts/validate.mjs"
+    "build": "node scripts/build-bundle.mjs",
+    "validate": "node scripts/validate.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
   }
 }

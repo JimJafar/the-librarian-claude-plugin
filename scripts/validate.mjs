@@ -75,11 +75,32 @@ if (mcp.missing) {
   }
 }
 
-// --- hooks/hooks.json (optional until PR C) ---
+// --- hooks/hooks.json + dispatch + bundled bins (land together in PR C) ---
 const hooks = readJson("hooks/hooks.json");
 if (!hooks.missing && hooks.value) {
   checked.push("hooks.json");
-  require(hooks.value.hooks && typeof hooks.value.hooks === "object", "hooks.json: top-level hooks object required");
+  const h = hooks.value.hooks;
+  require(h && typeof h === "object", "hooks.json: top-level hooks object required");
+  for (const [event, groups] of Object.entries(h ?? {})) {
+    require(Array.isArray(groups), `hooks.json: ${event} must be an array of matcher groups`);
+    for (const group of Array.isArray(groups) ? groups : []) {
+      const entries = group?.hooks;
+      require(Array.isArray(entries) && entries.length > 0, `hooks.json: ${event} group needs a hooks[] array`);
+      for (const hook of Array.isArray(entries) ? entries : []) {
+        require(hook?.type === "command", `hooks.json: ${event} hook must be type "command"`);
+        require(
+          typeof hook?.command === "string" && hook.command.includes("${CLAUDE_PLUGIN_ROOT}"),
+          `hooks.json: ${event} command must reference \${CLAUDE_PLUGIN_ROOT}`,
+        );
+      }
+    }
+  }
+
+  // Hooks reference the dispatch script and the bundled bins — they must exist.
+  require(existsSync(path.join(root, "scripts/dispatch.sh")), "scripts/dispatch.sh is missing");
+  for (const binName of ["librarian-claude-hook.js", "librarian-mcp-call.js"]) {
+    require(existsSync(path.join(root, "bin", binName)), `bin/${binName} is missing (run npm run build)`);
+  }
 }
 
 // --- commands/ (optional until PR B): every file is markdown ---
