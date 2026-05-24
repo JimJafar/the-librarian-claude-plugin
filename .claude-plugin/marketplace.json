@@ -1,0 +1,18 @@
+{
+  "name": "the-librarian",
+  "owner": {
+    "name": "Jim Sangwine",
+    "email": "jim@sangwine.net"
+  },
+  "description": "The Librarian — memory + session-lifecycle plugins for Claude Code.",
+  "plugins": [
+    {
+      "name": "the-librarian",
+      "source": "./",
+      "description": "Durable memory + cross-harness session lifecycle, backed by a remote Librarian MCP server.",
+      "version": "0.1.0",
+      "license": "Apache-2.0",
+      "keywords": ["memory", "sessions", "mcp"]
+    }
+  ]
+}
