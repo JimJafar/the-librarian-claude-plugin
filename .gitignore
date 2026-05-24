@@ -1,0 +1,13 @@
+# Autonomous build scratchpad — never commit
+AUTONOMOUS-BUILD-NOTES-*.md
+
+# Node
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+*.log
+.idea/
+.vscode/
