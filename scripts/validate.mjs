@@ -3,6 +3,7 @@
 // the "test suite" — CI runs it on every push/PR. It grows as components land
 // (commands, hooks, bundled bins).
 
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,8 +99,30 @@ if (!hooks.missing && hooks.value) {
 
   // Hooks reference the dispatch script and the bundled bins — they must exist.
   require(existsSync(path.join(root, "scripts/dispatch.sh")), "scripts/dispatch.sh is missing");
-  for (const binName of ["librarian-claude-hook.js", "librarian-mcp-call.js"]) {
+  const binNames = ["librarian-claude-hook.js", "librarian-mcp-call.js"];
+  for (const binName of binNames) {
     require(existsSync(path.join(root, "bin", binName)), `bin/${binName} is missing (run npm run build)`);
+  }
+
+  // Drift guard: the committed bins must match the hashes build-bundle.mjs recorded.
+  // A hand-edited or stale bin (not regenerated from source) fails CI here.
+  const prov = readJson("bin/PROVENANCE.json");
+  if (prov.missing) {
+    errors.push("bin/PROVENANCE.json is missing (run npm run build)");
+  } else if (prov.value) {
+    checked.push("PROVENANCE.json");
+    for (const binName of binNames) {
+      const recorded = prov.value.bins?.[binName];
+      require(typeof recorded === "string", `PROVENANCE.json: no hash recorded for ${binName}`);
+      const abs = path.join(root, "bin", binName);
+      if (recorded && existsSync(abs)) {
+        const actual = createHash("sha256").update(readFileSync(abs)).digest("hex");
+        require(
+          actual === recorded,
+          `bin/${binName} does not match PROVENANCE.json — regenerate with \`npm run build\` (do not hand-edit bundles)`,
+        );
+      }
+    }
   }
 }
 

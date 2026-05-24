@@ -13,7 +13,9 @@
 // not the sibling directory.
 
 import { build } from "esbuild";
-import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -50,3 +52,41 @@ for (const [name, entryPoint] of Object.entries(entries)) {
   });
   console.log(`bundled bin/${name}.js`);
 }
+
+// Stamp provenance so the committed artifacts are auditable and drift-checkable:
+// validate.mjs (run in CI) asserts each bin still matches the recorded hash, so a
+// hand-edited or stale bin fails CI. The monorepo SHA + lifecycle version record
+// WHICH source produced these bytes (CI can't rebuild from the monorepo).
+function sha256(file) {
+  return createHash("sha256").update(readFileSync(file)).digest("hex");
+}
+function tryExec(cmd, args) {
+  try {
+    return execFileSync(cmd, args, { encoding: "utf8" }).trim();
+  } catch {
+    return "unknown";
+  }
+}
+const lifecycleVersion = (() => {
+  try {
+    const pkg = path.join(monorepo, "integrations/shared/librarian-lifecycle/package.json");
+    return JSON.parse(readFileSync(pkg, "utf8")).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
+const provenance = {
+  source: "@librarian/lifecycle",
+  monorepoSha: tryExec("git", ["-C", monorepo, "rev-parse", "HEAD"]),
+  lifecycleVersion,
+  bins: Object.fromEntries(
+    Object.keys(entries).map((name) => [`${name}.js`, sha256(path.join(root, "bin", `${name}.js`))]),
+  ),
+};
+writeFileSync(
+  path.join(root, "bin", "PROVENANCE.json"),
+  `${JSON.stringify(provenance, null, 2)}\n`,
+);
+console.log(
+  `wrote bin/PROVENANCE.json (monorepo ${provenance.monorepoSha.slice(0, 12)}, lifecycle ${lifecycleVersion})`,
+);
