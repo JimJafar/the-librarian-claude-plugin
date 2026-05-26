@@ -11,6 +11,14 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Added
+
+- `AGENTS.md` with the family-wide house rules (privacy, fail-soft,
+  cross-repo contracts, CHANGELOG discipline, etc.) and the
+  Claude-plugin-specific build / test / gotcha notes. Sibling
+  AGENTS.md files in the four other Librarian repos share the same
+  baseline.
+
 ## [0.1.0] — 2026-05-26
 
 Public baseline. A [Claude Code](https://claude.com/claude-code) plugin for
