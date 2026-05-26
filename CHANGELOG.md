@@ -19,6 +19,15 @@ changes from this point forward are catalogued here.
   AGENTS.md files in the four other Librarian repos share the same
   baseline.
 
+### Changed
+
+- **AGENTS.md §2** updated: the canonical TS privacy-detector source
+  in `the-librarian/integrations/shared/librarian-lifecycle/` was
+  deleted when the family went fully standalone. The privacy detector
+  is now one of five peer implementations across the family (this
+  repo's bundled JS, Codex, Hermes, OpenCode, Pi). Coordinate any
+  marker-list change across all five repos.
+
 ## [0.1.0] — 2026-05-26
 
 Public baseline. A [Claude Code](https://claude.com/claude-code) plugin for
