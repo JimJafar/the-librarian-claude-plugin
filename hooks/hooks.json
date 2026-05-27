@@ -3,6 +3,14 @@
     "UserPromptSubmit": [
       {
         "hooks": [{ "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/dispatch.sh" }]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/inject-conv-state.sh"
+          }
+        ]
       }
     ],
     "PostCompact": [
