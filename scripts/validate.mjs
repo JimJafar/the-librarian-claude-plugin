@@ -99,7 +99,11 @@ if (!hooks.missing && hooks.value) {
 
   // Hooks reference the dispatch script and the bundled bins — they must exist.
   require(existsSync(path.join(root, "scripts/dispatch.sh")), "scripts/dispatch.sh is missing");
-  const binNames = ["librarian-claude-hook.js", "librarian-mcp-call.js"];
+  const binNames = [
+    "librarian-claude-hook.js",
+    "librarian-mcp-call.js",
+    "librarian-conv-state-inject.js",
+  ];
   for (const binName of binNames) {
     require(existsSync(path.join(root, "bin", binName)), `bin/${binName} is missing (run npm run build)`);
   }
