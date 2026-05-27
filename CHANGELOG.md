@@ -13,6 +13,23 @@ changes from this point forward are catalogued here.
 
 ### Added
 
+- **Conv-state injection on every UserPromptSubmit.** Implements
+  spec §4.9 of the upstream memory-domain-isolation rollout. A new
+  hook entry runs `bin/librarian-conv-state-inject.mjs` alongside the
+  existing lifecycle dispatch on every UserPromptSubmit event: it
+  reads the calling `conversation_state` row via `conv_state_get` and,
+  when one exists, emits the canonical `<conversation-state>` block
+  as `hookSpecificOutput.additionalContext` so the LLM sees the
+  current `domain` / `session_id` / `off_record` on every turn —
+  defeating context-compaction-driven state loss. When no row exists
+  or the server is unreachable, the bin stays silent (fail-soft per
+  AGENTS.md §2) and the prompt reaches the model unmodified.
+
+  Self-contained: the inject bin is its own file with a tiny HTTP MCP
+  client baked in. No dependency on the retired
+  `@librarian/lifecycle` package, so the existing committed bundle
+  (and its hash-validated provenance) is untouched.
+
 - `AGENTS.md` with the family-wide house rules (privacy, fail-soft,
   cross-repo contracts, CHANGELOG discipline, etc.) and the
   Claude-plugin-specific build / test / gotcha notes. Sibling

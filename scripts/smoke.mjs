@@ -121,6 +121,116 @@ async function dispatchSmoke() {
   console.log("smoke: dispatch.sh exits 0 with empty stdout (happy + error paths) ✓");
 }
 
+// --- 3. inject-conv-state.sh emits the canonical block to stdout when the
+// Librarian has a conv_state row for the calling session_id, and STAYS SILENT
+// otherwise. Unlike dispatch, this hook's stdout is forwarded to Claude Code
+// (via hookSpecificOutput.additionalContext) — so silence on the no-state
+// branch is what keeps the model's context clean. ---
+async function injectConvStateSmoke() {
+  const injectScript = path.join(root, "scripts", "inject-conv-state.sh");
+  const baseEvent = (sessionId) =>
+    JSON.stringify({
+      hook_event_name: "UserPromptSubmit",
+      session_id: sessionId,
+      cwd: "/smoke",
+      prompt: "hello",
+    });
+
+  // 3a. Conv-state hit → bin emits the additionalContext envelope.
+  {
+    const { server, url } = await startServer((name) => {
+      if (name !== "conv_state_get") fail(`inject hit unexpected tool ${name}`);
+      return JSON.stringify({
+        conv_id: "claude:smoke",
+        harness: "claude-code",
+        domain: "coding",
+        session_id: "ses_attached",
+        off_record: false,
+        created_at: "2026-05-27T00:00:00.000Z",
+        updated_at: "2026-05-27T00:00:00.000Z",
+      });
+    });
+    const r = await run("bash", [injectScript], {
+      env: {
+        CLAUDE_PLUGIN_ROOT: root,
+        LIBRARIAN_MCP_URL: url,
+        LIBRARIAN_AGENT_TOKEN: "tok_smoke",
+      },
+      input: baseEvent("smoke"),
+    });
+    server.close();
+    if (r.status !== 0) fail(`inject exited ${r.status} on the hit path\n${r.stderr}`);
+    let parsed;
+    try {
+      parsed = JSON.parse(r.stdout);
+    } catch {
+      fail(`inject stdout was not JSON on the hit path: ${r.stdout}`);
+    }
+    const ctx = parsed.hookSpecificOutput?.additionalContext;
+    if (!ctx || !ctx.includes("<conversation-state>")) {
+      fail(`inject did not emit the conversation-state block: ${r.stdout}`);
+    }
+    if (!ctx.includes("conv_id: claude:smoke")) fail(`block missing conv_id`);
+    if (!ctx.includes("domain: coding")) fail(`block missing domain`);
+    if (!ctx.includes("session_id: ses_attached")) fail(`block missing session_id`);
+    if (!ctx.includes("off_record: false")) fail(`block missing off_record`);
+  }
+
+  // 3b. No conv_state row → bin stays silent.
+  {
+    const { server, url } = await startServer(() => "No conversation state for conv_id claude:smoke.");
+    const r = await run("bash", [injectScript], {
+      env: {
+        CLAUDE_PLUGIN_ROOT: root,
+        LIBRARIAN_MCP_URL: url,
+        LIBRARIAN_AGENT_TOKEN: "tok_smoke",
+      },
+      input: baseEvent("smoke"),
+    });
+    server.close();
+    if (r.status !== 0) fail(`inject exited ${r.status} on the no-state path\n${r.stderr}`);
+    if (r.stdout !== "") fail(`inject leaked stdout on the no-state path: ${JSON.stringify(r.stdout)}`);
+  }
+
+  // 3c. Non-UserPromptSubmit events are no-ops.
+  {
+    const { server } = await startServer(() => {
+      fail("inject called MCP on a non-UserPromptSubmit event");
+      return "";
+    });
+    const r = await run("bash", [injectScript], {
+      env: {
+        CLAUDE_PLUGIN_ROOT: root,
+        LIBRARIAN_MCP_URL: "http://127.0.0.1:1",
+        LIBRARIAN_AGENT_TOKEN: "tok_smoke",
+      },
+      input: JSON.stringify({ hook_event_name: "PostCompact", session_id: "smoke" }),
+    });
+    server.close();
+    if (r.status !== 0) fail(`inject exited ${r.status} on the other-event path\n${r.stderr}`);
+    if (r.stdout !== "") fail(`inject leaked stdout on the other-event path: ${JSON.stringify(r.stdout)}`);
+  }
+
+  // 3d. Misconfig (no token) is silent — the fail-soft contract.
+  {
+    const r = await run("bash", [injectScript], {
+      env: {
+        CLAUDE_PLUGIN_ROOT: root,
+        LIBRARIAN_MCP_URL: "http://127.0.0.1:1",
+        LIBRARIAN_AGENT_TOKEN: "",
+      },
+      input: baseEvent("smoke"),
+    });
+    if (r.status !== 0) fail(`inject exited ${r.status} on the misconfig path`);
+    if (r.stdout !== "") fail(`inject leaked stdout on the misconfig path: ${JSON.stringify(r.stdout)}`);
+  }
+
+  console.log(
+    "smoke: inject-conv-state.sh emits additionalContext on hit, stays silent on no-state / other-event / misconfig ✓",
+  );
+}
+
 await mcpCallSmoke();
 await dispatchSmoke();
+await injectConvStateSmoke();
 console.log("smoke passed.");
