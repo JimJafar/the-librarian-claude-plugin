@@ -51,9 +51,14 @@ function tryExec(cmd, args) {
     return "unknown";
   }
 }
+const repoSha = tryExec("git", ["-C", root, "rev-parse", "HEAD"]);
+if (repoSha === "unknown") {
+  console.error("Cannot stamp PROVENANCE.json: git rev-parse HEAD failed (no commits / not a git checkout?). Refusing to commit a 'unknown' repoSha — provenance must be honest.");
+  process.exit(1);
+}
 const provenance = {
   source: "in-tree",
-  repoSha: tryExec("git", ["-C", root, "rev-parse", "HEAD"]),
+  repoSha,
   bins: Object.fromEntries(
     Object.keys(entries).map((name) => [`${name}.js`, sha256(path.join(root, "bin", `${name}.js`))]),
   ),
