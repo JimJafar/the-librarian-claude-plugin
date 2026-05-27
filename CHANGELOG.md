@@ -15,7 +15,7 @@ changes from this point forward are catalogued here.
 
 - **Conv-state injection on every UserPromptSubmit.** Implements
   spec §4.9 of the upstream memory-domain-isolation rollout. A new
-  hook entry runs `bin/librarian-conv-state-inject.mjs` alongside the
+  hook entry runs `bin/librarian-conv-state-inject.js` alongside the
   existing lifecycle dispatch on every UserPromptSubmit event: it
   reads the calling `conversation_state` row via `conv_state_get` and,
   when one exists, emits the canonical `<conversation-state>` block
@@ -24,11 +24,30 @@ changes from this point forward are catalogued here.
   defeating context-compaction-driven state loss. When no row exists
   or the server is unreachable, the bin stays silent (fail-soft per
   AGENTS.md §2) and the prompt reaches the model unmodified.
+- **Lifecycle source restored in-tree.** The plugin no longer depends
+  on a sibling `the-librarian` checkout to rebuild its committed
+  bundles. `src/` now contains the TypeScript source for the Claude
+  Code harness adapter, the synchronous→async MCP-call bridge, and
+  all the shared modules they use (privacy detector, state store,
+  session driver, transport, remote CLI). Extracted from main-repo
+  SHA `50ba519` (the commit immediately before PR #153 deleted
+  `integrations/shared/librarian-lifecycle/src/`). The codex harness
+  was intentionally omitted — this plugin only ships Claude Code.
 
-  Self-contained: the inject bin is its own file with a tiny HTTP MCP
-  client baked in. No dependency on the retired
-  `@librarian/lifecycle` package, so the existing committed bundle
-  (and its hash-validated provenance) is untouched.
+### Changed
+
+- **`scripts/build-bundle.mjs` bundles from in-tree `src/`.** The
+  `LIBRARIAN_MONOREPO` env-var override is gone; the build no longer
+  reaches outside this repo. `bin/PROVENANCE.json` schema updated:
+  `monorepoSha` + `lifecycleVersion` are removed; `repoSha` is added;
+  `source` is `"in-tree"`.
+- **`bin/librarian-conv-state-inject.mjs` is now built from
+  `src/bin/conv-state-inject.ts`** and emitted as
+  `bin/librarian-conv-state-inject.js` (extension change — the
+  handwritten ESM file was the previous source of truth, now under
+  src/ as typed TS, bundled by esbuild like the other two bins).
+  `scripts/validate.mjs` now hash-validates all three committed bins
+  against `PROVENANCE.json`.
 
 - `AGENTS.md` with the family-wide house rules (privacy, fail-soft,
   cross-repo contracts, CHANGELOG discipline, etc.) and the
@@ -43,7 +62,9 @@ changes from this point forward are catalogued here.
   deleted when the family went fully standalone. The privacy detector
   is now one of five peer implementations across the family (this
   repo's bundled JS, Codex, Hermes, OpenCode, Pi). Coordinate any
-  marker-list change across all five repos.
+  marker-list change across all five repos. (The TS source for this
+  plugin's copy now lives at `src/privacy.ts` after the in-tree
+  restoration — see the "Added" entry above.)
 
 ## [0.1.0] — 2026-05-26
 
