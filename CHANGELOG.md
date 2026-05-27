@@ -33,6 +33,11 @@ changes from this point forward are catalogued here.
   SHA `50ba519` (the commit immediately before PR #153 deleted
   `integrations/shared/librarian-lifecycle/src/`). The codex harness
   was intentionally omitted — this plugin only ships Claude Code.
+- `AGENTS.md` with the family-wide house rules (privacy, fail-soft,
+  cross-repo contracts, CHANGELOG discipline, etc.) and the
+  Claude-plugin-specific build / test / gotcha notes. Sibling
+  AGENTS.md files in the four other Librarian repos share the same
+  baseline.
 
 ### Changed
 
@@ -48,15 +53,6 @@ changes from this point forward are catalogued here.
   src/ as typed TS, bundled by esbuild like the other two bins).
   `scripts/validate.mjs` now hash-validates all three committed bins
   against `PROVENANCE.json`.
-
-- `AGENTS.md` with the family-wide house rules (privacy, fail-soft,
-  cross-repo contracts, CHANGELOG discipline, etc.) and the
-  Claude-plugin-specific build / test / gotcha notes. Sibling
-  AGENTS.md files in the four other Librarian repos share the same
-  baseline.
-
-### Changed
-
 - **AGENTS.md §2** updated: the canonical TS privacy-detector source
   in `the-librarian/integrations/shared/librarian-lifecycle/` was
   deleted when the family went fully standalone. The privacy detector
