@@ -13,7 +13,7 @@ set -u
 [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] || exit 0
 command -v node >/dev/null 2>&1 || exit 0
 
-inject_bin="${CLAUDE_PLUGIN_ROOT}/bin/librarian-conv-state-inject.mjs"
+inject_bin="${CLAUDE_PLUGIN_ROOT}/bin/librarian-conv-state-inject.js"
 [ -f "${inject_bin}" ] || exit 0
 
 # Forward stdout (Claude Code reads `additionalContext` from it).

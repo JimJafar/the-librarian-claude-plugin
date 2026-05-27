@@ -18,6 +18,7 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const entries = {
   "librarian-claude-hook": path.join(root, "src", "bin", "claude-code-hook.ts"),
   "librarian-mcp-call": path.join(root, "src", "bin", "mcp-call.ts"),
+  "librarian-conv-state-inject": path.join(root, "src", "bin", "conv-state-inject.ts"),
 };
 
 for (const [name, entryPoint] of Object.entries(entries)) {
