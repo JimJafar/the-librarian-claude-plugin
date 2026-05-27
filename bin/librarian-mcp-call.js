@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// ../the-librarian/integrations/shared/librarian-lifecycle/dist/mcp-client.js
+// src/mcp-client.ts
 var DEFAULT_TIMEOUT_MS = 15e3;
 var DEFAULT_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 var MAX_RPC_MESSAGE_CHARS = 200;
@@ -22,10 +22,16 @@ function createMcpClient(config, transport) {
     throw new McpClientError("config", "Librarian endpoint is not a valid URL");
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new McpClientError("config", `Librarian endpoint must be http(s), got ${url.protocol.replace(/:$/, "") || "(none)"}`);
+    throw new McpClientError(
+      "config",
+      `Librarian endpoint must be http(s), got ${url.protocol.replace(/:$/, "") || "(none)"}`
+    );
   }
   if (url.username || url.password) {
-    throw new McpClientError("config", "Librarian endpoint must not embed credentials; authenticate with the token instead");
+    throw new McpClientError(
+      "config",
+      "Librarian endpoint must not embed credentials; authenticate with the token instead"
+    );
   }
   const endpoint = config.endpoint;
   const safeEndpoint = `${url.protocol}//${url.host}${url.pathname}`;
@@ -50,12 +56,14 @@ function createMcpClient(config, transport) {
       try {
         response = await send({ url: endpoint, body, headers, timeoutMs });
       } catch (err) {
-        if (err instanceof McpClientError)
-          throw err;
+        if (err instanceof McpClientError) throw err;
         if (isTimeoutError(err)) {
           throw new McpClientError("timeout", `${name} timed out after ${timeoutMs}ms`);
         }
-        throw new McpClientError("network", `${name} could not reach the Librarian at ${safeEndpoint}`);
+        throw new McpClientError(
+          "network",
+          `${name} could not reach the Librarian at ${safeEndpoint}`
+        );
       }
       if (response.status !== 200) {
         throw new McpClientError("http", `${name} returned HTTP ${response.status}`, {
@@ -91,17 +99,13 @@ function isTimeoutError(err) {
   return name === "AbortError" || name === "TimeoutError" || code === "ETIMEDOUT";
 }
 function extractText(payload) {
-  if (!isRecord(payload))
-    return null;
+  if (!isRecord(payload)) return null;
   const result = payload.result;
-  if (!isRecord(result))
-    return null;
+  if (!isRecord(result)) return null;
   const content = result.content;
-  if (!Array.isArray(content) || content.length === 0)
-    return null;
+  if (!Array.isArray(content) || content.length === 0) return null;
   const first = content[0];
-  if (!isRecord(first))
-    return null;
+  if (!isRecord(first)) return null;
   return typeof first.text === "string" ? first.text : null;
 }
 function defaultTransport(maxResponseBytes) {
@@ -138,10 +142,8 @@ async function readCapped(response, cap) {
   let total = 0;
   for (; ; ) {
     const { done, value } = await reader.read();
-    if (done)
-      break;
-    if (!value)
-      continue;
+    if (done) break;
+    if (!value) continue;
     total += value.byteLength;
     if (total > cap) {
       await reader.cancel();
@@ -161,8 +163,7 @@ function projectOrNull(value) {
 function parseSessionFromProse(text) {
   const id = firstMatch(text, /^ID:\s*(.+)$/m);
   const status = firstMatch(text, /^Status:\s*(.+)$/m);
-  if (!id || !status)
-    return null;
+  if (!id || !status) return null;
   const title = firstMatch(text, /^Title:\s*(.+)$/m) ?? firstMatch(text, /^Session:\s*(.+)$/m);
   return {
     id,
@@ -210,7 +211,7 @@ function parseSessionListFromProse(text) {
   return sessions;
 }
 
-// ../the-librarian/integrations/shared/librarian-lifecycle/dist/bin/mcp-call.js
+// src/bin/mcp-call.ts
 function fail(message) {
   process.stderr.write(`${message}
 `);
@@ -218,59 +219,64 @@ function fail(message) {
 }
 async function readStdin() {
   const chunks = [];
-  for await (const chunk of process.stdin)
-    chunks.push(chunk);
+  for await (const chunk of process.stdin) chunks.push(chunk);
   return Buffer.concat(chunks).toString("utf8");
 }
 function firstLine(text) {
   return text.split("\n", 1)[0] ?? text;
 }
 function ensureFound(text, verb) {
-  if (/^No session found/.test(text.trim()))
-    fail(`${verb}: ${firstLine(text)}`);
+  if (/^No session found/.test(text.trim())) fail(`${verb}: ${firstLine(text)}`);
 }
 function compact(obj) {
   const out = {};
   for (const [key, value] of Object.entries(obj)) {
-    if (value !== void 0)
-      out[key] = value;
+    if (value !== void 0) out[key] = value;
   }
   return out;
 }
 async function dispatch(client, verb, args) {
   switch (verb) {
     case "start": {
-      const text = await client.callTool("start_session", compact({
-        harness: args.harness,
-        source_ref: args.sourceRef,
-        cwd: args.cwd,
-        project_key: args.projectKey,
-        start_summary: args.summary,
-        title: args.title
-      }));
+      const text = await client.callTool(
+        "start_session",
+        compact({
+          harness: args.harness,
+          source_ref: args.sourceRef,
+          cwd: args.cwd,
+          project_key: args.projectKey,
+          start_summary: args.summary,
+          title: args.title
+        })
+      );
       const session = parseSessionFromProse(text);
-      if (!session)
-        fail(`start: ${firstLine(text)}`);
+      if (!session) fail(`start: ${firstLine(text)}`);
       return { session };
     }
     case "list": {
-      const text = await client.callTool("list_sessions", compact({
-        harness: args.harness,
-        source_ref: args.sourceRef,
-        cwd: args.cwd,
-        project_key: args.projectKey,
-        status: args.statuses
-      }));
+      const text = await client.callTool(
+        "list_sessions",
+        compact({
+          harness: args.harness,
+          source_ref: args.sourceRef,
+          cwd: args.cwd,
+          project_key: args.projectKey,
+          status: args.statuses
+        })
+      );
       return { sessions: parseSessionListFromProse(text) };
     }
     case "continue": {
-      const text = await client.callTool("continue_session", compact({
-        session_id: args.sessionId,
-        target_harness: args.harness,
-        target_cwd: args.cwd,
-        target_source_ref: args.sourceRef,
-        attach: true
-      }));
+      const text = await client.callTool(
+        "continue_session",
+        compact({
+          session_id: args.sessionId,
+          target_harness: args.harness,
+          target_cwd: args.cwd,
+          target_source_ref: args.sourceRef,
+          attach: true
+        })
+      );
       ensureFound(text, "continue");
       return {
         session: {
@@ -284,17 +290,26 @@ async function dispatch(client, verb, args) {
       };
     }
     case "checkpoint": {
-      const text = await client.callTool("checkpoint_session", compact({ session_id: args.sessionId, summary: args.summary }));
+      const text = await client.callTool(
+        "checkpoint_session",
+        compact({ session_id: args.sessionId, summary: args.summary })
+      );
       ensureFound(text, "checkpoint");
       return { ok: true };
     }
     case "pause": {
-      const text = await client.callTool("pause_session", compact({ session_id: args.sessionId, summary: args.summary }));
+      const text = await client.callTool(
+        "pause_session",
+        compact({ session_id: args.sessionId, summary: args.summary })
+      );
       ensureFound(text, "pause");
       return { ok: true };
     }
     case "end": {
-      const text = await client.callTool("end_session", compact({ session_id: args.sessionId, summary: args.reason }));
+      const text = await client.callTool(
+        "end_session",
+        compact({ session_id: args.sessionId, summary: args.reason })
+      );
       ensureFound(text, "end");
       return { ok: true };
     }
@@ -304,8 +319,7 @@ async function dispatch(client, verb, args) {
 }
 async function main() {
   const verb = process.argv[2];
-  if (!verb)
-    fail("usage: mcp-call <verb> (args on stdin)");
+  if (!verb) fail("usage: mcp-call <verb> (args on stdin)");
   const endpoint = process.env.LIBRARIAN_MCP_URL;
   const token = process.env.LIBRARIAN_AGENT_TOKEN;
   if (!endpoint || !token) {
@@ -320,8 +334,7 @@ async function main() {
   }
   let args = {};
   try {
-    if (raw)
-      args = JSON.parse(raw);
+    if (raw) args = JSON.parse(raw);
   } catch {
     fail("invalid JSON on stdin");
   }
