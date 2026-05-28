@@ -9,9 +9,11 @@ commit. Follow it on every change.
 ## 1. What this repo is
 
 A [Claude Code](https://claude.com/claude-code) plugin for The
-Librarian — gives Claude Code remote memory tools, automatic session
-lifecycle hooks, `/lib-session-*` slash commands, and an off-record
-privacy gate. Distributed via the Claude Code plugin marketplace.
+Librarian — gives Claude Code remote memory tools, cross-harness
+narrative handoffs (`/handoff` / `/takeover` / `/learn` /
+`/toggle-private`), and a per-turn conv-state injection hook so the
+model always knows which domain its memory writes route to.
+Distributed via the Claude Code plugin marketplace.
 
 ## 2. House rules
 
@@ -24,17 +26,20 @@ your PR, inherits whatever you said — make sure it's true.
 
 ### Privacy beats convenience
 
-This is The Librarian. Privacy is the product, not a feature. The
-off-record gate stops all automatic recording — never bypass it, never
-"just for debugging." Bearer tokens go in headers, never in URLs or
-logs or error messages. The privacy-marker list is shared across all
-five Librarian plugins (Claude Code, Codex, Hermes, OpenCode, Pi) —
-**five peer implementations of the same behaviour, no single canonical
-source any longer.** Any marker-list change must land coordinated
-across all five repos in one go (or none). Note: this repo's privacy
-detector lives inside the committed `bin/librarian-claude-hook.js`
-bundle (no separate source); changes here require regenerating the
-bundle from your edit of choice.
+This is The Librarian. Privacy is the product, not a feature. Bearer
+tokens go in headers, never in URLs or logs or error messages.
+
+Post-sessions-rethink (PR 2), private mode is **in-conversation only**
+— a `[librarian:private=on|off]` marker injected by `/toggle-private`.
+There is no server flag, no plugin hook, no persistence, and no
+natural-language detector. While `[librarian:private=on]` is the
+most-recent marker, the agent must not call `remember` /
+`propose_memory`; `recall` is still allowed. `/handoff` and `/learn`
+require explicit user confirmation while private. The marker survives
+the turn but **conversation compaction can erase it** — this is a
+documented limitation accepted in exchange for a zero-dependency
+privacy model. Operators who need hard guarantees should run with
+`--no-compact` or equivalent.
 
 ### Fail-soft, never block the user's turn
 
@@ -50,16 +55,18 @@ Three things stay consistent across the family. Don't change any of
 them in one repo without changing all of them in the same coordinated
 push, and never invent new ones unilaterally:
 
-- **`/lib:session` verbs:** `start`, `list`, `resume`, `checkpoint`,
-  `pause`, `end`, `search`, plus `/lib-toggle-private`. Canonical
-  contract: [`the-librarian/docs/slash-commands.md`](https://github.com/JimJafar/the-librarian/blob/main/docs/slash-commands.md).
-- **Three-state models:** sessions are `active | paused | ended`;
-  memories are `active | proposed | archived`. The retired verbs
-  (`archive`, `restore`, `delete`, `status`, `confirm_memory`,
-  `reject_memory`) are gone for good.
-- **`source_ref` shape:** `<harness>:<run-id>:cwd:<abs>` when the run
-  id is available, else `cwd:<abs>`. This is the cross-harness primary
-  key for sessions.
+- **Four user-facing verbs:** `/handoff`, `/takeover`, `/learn`,
+  `/toggle-private`. Canonical contract:
+  [`the-librarian/docs/specs/sessions-rethink-spec.md`](https://github.com/JimJafar/the-librarian/blob/main/docs/specs/sessions-rethink-spec.md)
+  §6.5. Adding a fifth verb here requires coordinating with the four
+  sibling plugin repos in the same release.
+- **Three-state memory model:** memories are `active | proposed |
+  archived`. Proposals are accepted/rejected via the dashboard or
+  `update_memory`; deletion is `archive_memory`.
+- **Five-section handoff template:** `## Start & intent`,
+  `## Journey`, `## Current state`, `## What's left`,
+  `## Open questions`. Validated by the server at `store_handoff`;
+  every harness plugin must teach its `/handoff` command to emit it.
 
 ### Respect your consumers
 

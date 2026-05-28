@@ -5,19 +5,18 @@
 
 A [Claude Code](https://claude.com/claude-code) **plugin** for
 [The Librarian](https://github.com/JimJafar/the-librarian) — durable memory and
-cross-harness session continuity, backed by a Librarian HTTP MCP server you
+cross-harness narrative handoffs, backed by a Librarian HTTP MCP server you
 point at (local or remote).
 
 ## Features
 
-- **Memory + session tools** — `recall` / `remember` / `verify_memory`,
-  `start_session`, … as native Claude Code MCP tools.
-- **`/lib-session-*` + `/lib-toggle-private`** slash commands for the full
-  session lifecycle.
-- **Automatic session lifecycle** — a session starts/resumes on your first
-  prompt, checkpoints on compaction and task completion, pauses on session end.
-- **Off-record privacy gate** — say "off the record" (or run
-  `/lib-toggle-private`) and recording stops until you go back on.
+- **Memory tools** — `recall`, `remember`, `propose_memory`, `verify_memory`, `update_memory`,
+  `list_proposals` as native Claude Code MCP tools.
+- **Handoff tools** — `store_handoff`, `list_handoffs`, `claim_handoff` for atomic
+  cross-harness handover.
+- **Four slash commands** — `/handoff`, `/takeover`, `/learn`, `/toggle-private`.
+- **Per-turn conv-state injection** — a `UserPromptSubmit` hook keeps the model aware of
+  which domain its memory writes route to (multi-domain support survives compaction).
 - **Fail-soft** — if the Librarian is unreachable, a turn is never blocked.
 
 ## Install
@@ -37,7 +36,7 @@ Claude Code.
 | `LIBRARIAN_MCP_URL` | yes | Librarian HTTP MCP URL, e.g. `https://librarian.example.com/mcp` |
 | `LIBRARIAN_AGENT_TOKEN` | yes | Bearer token (kept only in the request header) |
 | `LIBRARIAN_AGENT_ID` | no | Canonical agent id (omit if the token is agent-bound server-side) |
-| `LIBRARIAN_PROJECT_KEY` | no | Default project scope for sessions |
+| `LIBRARIAN_PROJECT_KEY` | no | Default project scope |
 
 ```sh
 export LIBRARIAN_MCP_URL="https://librarian.example.com/mcp"
@@ -57,15 +56,19 @@ Then set `LIBRARIAN_MCP_URL` and `LIBRARIAN_AGENT_TOKEN` to match.
 
 ## How it works
 
-| Claude Code hook | Effect |
-| --- | --- |
-| `UserPromptSubmit` | Start / resume a session, run the privacy gate |
-| `PostCompact` | Checkpoint around compaction |
-| `TaskCompleted` | Checkpoint at task boundaries |
-| `SessionEnd` | Pause (never auto-end) |
+The plugin ships exactly one Claude Code hook — `UserPromptSubmit` — which runs the
+conv-state injection bin. The bin asks the Librarian for the conv_state row keyed by the
+current Claude Code session id and, when present, emits a `<conversation-state>` block via
+`hookSpecificOutput.additionalContext`. The block carries the resolved `domain`, attached
+handoff/session id (if any), and the most-recent off-record marker so the model can route
+memory writes correctly even after a compaction.
 
-The lifecycle's behavioural guidance (verify-after-recall, visibility, capture
-mode, boundaries) ships as the `use-the-librarian` skill, applied automatically.
+The four slash commands (`/handoff`, `/takeover`, `/learn`, `/toggle-private`) are pure
+agent operations — they call MCP tools directly; nothing is recorded server-side until you
+invoke one.
+
+Behavioural guidance (verify-after-recall, private-mode contract, handoff template) ships
+as the `use-the-librarian` skill, applied automatically.
 
 ## License
 

@@ -1,7 +1,7 @@
 {
   "name": "the-librarian",
-  "version": "0.1.0",
-  "description": "Durable memory + cross-harness session lifecycle for Claude Code, backed by a remote Librarian MCP server.",
+  "version": "0.2.0",
+  "description": "Durable memory + cross-harness handoffs for Claude Code, backed by a remote Librarian MCP server.",
   "author": {
     "name": "Jim Sangwine",
     "email": "jim@sangwine.net"
@@ -9,5 +9,5 @@
   "homepage": "https://github.com/JimJafar/the-librarian-claude-plugin",
   "repository": "https://github.com/JimJafar/the-librarian-claude-plugin",
   "license": "Apache-2.0",
-  "keywords": ["memory", "sessions", "mcp", "librarian", "recall", "handover"]
+  "keywords": ["memory", "handoff", "mcp", "librarian", "recall", "cross-harness"]
 }

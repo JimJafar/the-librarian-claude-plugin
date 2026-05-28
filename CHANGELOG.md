@@ -11,6 +11,39 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Sessions rethink — breaking change (sessions-rethink PR 2).** The
+  whole session subsystem is replaced by a smaller handoffs surface plus
+  in-conversation private mode. Specifically:
+  - **Removed slash commands:** `/lib-session-start`, `/lib-session-list`,
+    `/lib-session-resume`, `/lib-session-checkpoint`, `/lib-session-pause`,
+    `/lib-session-end`, `/lib-session-search`, `/lib-toggle-private`.
+  - **New slash commands:** `/handoff` (author a five-section narrative and
+    persist it for cross-harness pickup), `/takeover` (atomically claim a
+    handoff and inject its document), `/learn` (extract durable lessons →
+    `propose_memory`), `/toggle-private` (in-conversation marker — no
+    server flag, no hook, no persistence).
+  - **Removed hooks:** `PostCompact`, `TaskCompleted`, `SessionEnd` and the
+    session-dispatch leg of `UserPromptSubmit` are gone. Only the
+    conv-state injection leg of `UserPromptSubmit` remains.
+  - **Removed bundles:** `bin/librarian-claude-hook.js` and
+    `bin/librarian-mcp-call.js` are deleted; only
+    `bin/librarian-conv-state-inject.js` survives.
+  - **Removed source:** `src/cli.ts`, `src/remote-cli.ts`, `src/session.ts`,
+    `src/state.ts`, `src/privacy.ts`, `src/transport.ts`, `src/mcp-client.ts`,
+    `src/index.ts`, `src/bin/claude-code-hook.ts`, `src/bin/mcp-call.ts`,
+    `src/harness/claude-code.ts`, `scripts/dispatch.sh`. The natural-language
+    privacy detector (`/private`, `/public`, "off the record") is retired
+    per spec §6.5 — `/toggle-private` is the only way in or out.
+  - **Server compatibility:** requires a Librarian server running the
+    sessions-rethink PR 1 monorepo build (the `store_handoff` /
+    `list_handoffs` / `claim_handoff` MCP tools must exist).
+  - **Migration:** existing operators should drain in-flight sessions (run
+    `/lib-session-end` before upgrading), update the plugin, and restart
+    Claude Code. Pre-cutover sessions remain queryable from the dashboard
+    until PR 7 removes the sessions table; new work uses `/handoff`.
+
 ### Added
 
 - **Conv-state injection on every UserPromptSubmit.** Implements
