@@ -15,9 +15,7 @@ jobs:
           node-version: "20"
       - name: Validate plugin manifests
         run: node scripts/validate.mjs
-      - name: Syntax-check the bundled bins
-        run: |
-          node --check bin/librarian-claude-hook.js
-          node --check bin/librarian-mcp-call.js
-      - name: Smoke-test the bundled mcp-call bin
+      - name: Syntax-check the bundled bin
+        run: node --check bin/librarian-conv-state-inject.js
+      - name: Smoke-test the conv-state injection bin
         run: node scripts/smoke.mjs
