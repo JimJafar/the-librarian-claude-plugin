@@ -15,9 +15,13 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
+// sessions-rethink PR 2 — the per-harness session hook bundles
+// (`librarian-claude-hook` + the `mcp-call` bridge) are retired; the plugin
+// now ships only the conv-state injection bin, which the remaining
+// UserPromptSubmit hook drives. The four user-facing verbs (/handoff,
+// /takeover, /learn, /toggle-private) are agent operations that call the
+// new MCP tools directly — no bundled bin needed.
 const entries = {
-  "librarian-claude-hook": path.join(root, "src", "bin", "claude-code-hook.ts"),
-  "librarian-mcp-call": path.join(root, "src", "bin", "mcp-call.ts"),
   "librarian-conv-state-inject": path.join(root, "src", "bin", "conv-state-inject.ts"),
 };
 

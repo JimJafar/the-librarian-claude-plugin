@@ -1,9 +1,7 @@
 {
   "source": "in-tree",
-  "repoSha": "30750c643e6d38919a67062d7bdcd8259176f21e",
+  "repoSha": "8e828060d3713f6eced6ae6aad3527dba79ad06d",
   "bins": {
-    "librarian-claude-hook.js": "33021bfeeffc01534885e9cd166e3bc74acf00c5e0269ff252eff8be6032f6b8",
-    "librarian-mcp-call.js": "b68289b682a51c0c30e3eface883c18591ba142d4a3daae842f7c495d959c0f3",
     "librarian-conv-state-inject.js": "f97840e508c79d4678c51a233e2b5a15fe238aa8789f27a35f892c2c139afc88"
   }
 }

@@ -97,13 +97,14 @@ if (!hooks.missing && hooks.value) {
     }
   }
 
-  // Hooks reference the dispatch script and the bundled bins — they must exist.
-  require(existsSync(path.join(root, "scripts/dispatch.sh")), "scripts/dispatch.sh is missing");
-  const binNames = [
-    "librarian-claude-hook.js",
-    "librarian-mcp-call.js",
-    "librarian-conv-state-inject.js",
-  ];
+  // The remaining UserPromptSubmit hook drives the conv-state injection
+  // bin. PR 2 (sessions-rethink) retired the session dispatch script and
+  // the two session bins; conv-state injection is the only artifact left.
+  require(
+    existsSync(path.join(root, "scripts/inject-conv-state.sh")),
+    "scripts/inject-conv-state.sh is missing",
+  );
+  const binNames = ["librarian-conv-state-inject.js"];
   for (const binName of binNames) {
     require(existsSync(path.join(root, "bin", binName)), `bin/${binName} is missing (run npm run build)`);
   }
