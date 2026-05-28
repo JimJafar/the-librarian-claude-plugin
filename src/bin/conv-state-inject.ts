@@ -27,7 +27,13 @@ interface InjectConfig {
 
 interface ConvStateRow {
   conv_id: string;
-  domain?: string;
+  // `domain` is required on the wire — the backend enforces
+  // `z.string().min(1)` and the SQLite column is `TEXT NOT NULL
+  // DEFAULT 'general'`. Tightening to required forces compile-time
+  // errors on any caller that passes a partial row. The renderer
+  // still defends with `?? "unknown"` in case a malformed row slips
+  // through at runtime.
+  domain: string;
   session_id?: string | null;
   off_record?: boolean;
 }
@@ -181,12 +187,17 @@ async function callTool(
 // every harness. (A change here must land alongside an identical change
 // in core's helper and in every other plugin that injects this block.)
 function renderConvStateBlock(state: ConvStateRow): string {
+  // `domain` is required on the wire, but template-literal coercion
+  // of `undefined` would yield the literal string "undefined" — the
+  // model would treat that as fact. Fallback to "unknown" keeps the
+  // block well-formed if a malformed row slips through at runtime.
+  const domain = state.domain ?? "unknown";
   const sessionId = state.session_id ?? "none";
   const offRecord = state.off_record ? "true" : "false";
   return [
     "<conversation-state>",
     `  conv_id: ${state.conv_id}`,
-    `  domain: ${state.domain}`,
+    `  domain: ${domain}`,
     `  session_id: ${sessionId}`,
     `  off_record: ${offRecord}`,
     "</conversation-state>",
