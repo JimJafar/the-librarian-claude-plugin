@@ -16,7 +16,7 @@ point at (local or remote).
   cross-harness handover.
 - **Four slash commands** — `/handoff`, `/takeover`, `/learn`, `/toggle-private`.
 - **Per-turn conv-state injection** — a `UserPromptSubmit` hook keeps the model aware of
-  which domain its memory writes route to (multi-domain support survives compaction).
+  the conversation state (carrying the off-record marker, and surviving compaction).
 - **Fail-soft** — if the Librarian is unreachable, a turn is never blocked.
 
 ## Install
@@ -59,9 +59,8 @@ Then set `LIBRARIAN_MCP_URL` and `LIBRARIAN_AGENT_TOKEN` to match.
 The plugin ships exactly one Claude Code hook — `UserPromptSubmit` — which runs the
 conv-state injection bin. The bin asks the Librarian for the conv_state row keyed by the
 current Claude Code session id and, when present, emits a `<conversation-state>` block via
-`hookSpecificOutput.additionalContext`. The block carries the resolved `domain`, attached
-handoff/session id (if any), and the most-recent off-record marker so the model can route
-memory writes correctly even after a compaction.
+`hookSpecificOutput.additionalContext`. The block carries the `conv_id` and the most-recent
+off-record marker so the model stays aware of the conversation state even after a compaction.
 
 The four slash commands (`/handoff`, `/takeover`, `/learn`, `/toggle-private`) are pure
 agent operations — they call MCP tools directly; nothing is recorded server-side until you

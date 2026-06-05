@@ -18,10 +18,10 @@ they appear only when authenticated with an admin token.)
 **Handoff tools:** `store_handoff`, `list_handoffs`, `claim_handoff` — back the cross-harness
 narrative-handover surface that replaced the old session subsystem.
 
-**Conversation state:** `conv_state_get`, `conv_state_upsert`, `conv_state_clear` — the
-per-conversation registry that ties a Claude Code session to a Librarian domain. The plugin's
+**Conversation state:** `conv_state_get`, `conv_state_clear` — the per-conversation registry
+keyed by harness conversation id, carrying `session_id` + `off_record`. The plugin's
 `UserPromptSubmit` hook reads conv_state and injects a `<conversation-state>` block into the
-turn so the model always knows which domain its memory writes route to.
+turn.
 
 ## The four slash commands
 

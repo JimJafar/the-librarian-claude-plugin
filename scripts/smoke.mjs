@@ -105,9 +105,12 @@ async function injectConvStateSmoke() {
       fail(`inject did not emit the conversation-state block: ${r.stdout}`);
     }
     if (!ctx.includes("conv_id: claude:smoke")) fail(`block missing conv_id`);
-    if (!ctx.includes("domain: coding")) fail(`block missing domain`);
-    if (!ctx.includes("session_id: ses_attached")) fail(`block missing session_id`);
     if (!ctx.includes("off_record: false")) fail(`block missing off_record`);
+    // The block is trimmed to conv_id + off_record — domain / session_id are
+    // retired and must NOT leak into the rendered block even when the wire row
+    // still carries them.
+    if (ctx.includes("domain:")) fail(`block leaked retired domain line`);
+    if (ctx.includes("session_id:")) fail(`block leaked retired session_id line`);
   }
 
   // 2. No conv_state row → bin stays silent.

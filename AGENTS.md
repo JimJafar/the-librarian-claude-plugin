@@ -11,8 +11,7 @@ commit. Follow it on every change.
 A [Claude Code](https://claude.com/claude-code) plugin for The
 Librarian — gives Claude Code remote memory tools, cross-harness
 narrative handoffs (`/handoff` / `/takeover` / `/learn` /
-`/toggle-private`), and a per-turn conv-state injection hook so the
-model always knows which domain its memory writes route to.
+`/toggle-private`), and a per-turn conv-state injection hook.
 Distributed via the Claude Code plugin marketplace.
 
 ## 2. House rules
