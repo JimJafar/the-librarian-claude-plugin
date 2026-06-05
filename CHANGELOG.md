@@ -11,6 +11,33 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Conv-state block trimmed to `conv_id` + `off_record`.** The per-turn
+  `<conversation-state>` block the `UserPromptSubmit` hook injects now
+  renders only the conversation key and the privacy flag — the retired
+  `domain` and `session_id` lines are dropped. This lands in lockstep
+  with `@librarian/core`'s `renderConvStateBlock` helper and every other
+  plugin that injects this block, keeping the cross-harness contract
+  byte-identical. The `ConvStateRow` type drops `domain` and
+  `session_id` to match. (The conv_id key is still derived from the
+  harness event's `session_id`; only the rendered row changed.)
+
+### Removed
+
+- **`/learn` drops the `conv_id` → `domain` resolution and the
+  classifier-worker reference.** D16 removed the domain model and the
+  classifier subsystem was removed, so `/learn` no longer passes
+  `conv_id` to let the server resolve a domain, routes proposals through
+  the server (not a classifier worker), and no longer points at the
+  retired `/lib-session-list` command in its report.
+- **Retired `domain` framing in the skill, AGENTS.md, and README.** The
+  `use-the-librarian` skill, `AGENTS.md`, and `README.md` no longer say
+  the model "knows which domain its memory writes route to"; conv-state
+  is described as keyed by the harness conversation id, carrying the
+  off-record marker and surviving compaction (no domain). The skill also
+  drops the retired `conv_state_upsert` verb.
+
 ## [0.2.0] — 2026-05-28
 
 ### Added
