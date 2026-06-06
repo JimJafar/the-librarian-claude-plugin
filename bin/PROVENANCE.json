@@ -1,7 +1,7 @@
 {
   "source": "in-tree",
-  "repoSha": "a462bd08ee60a32a9ca8a9adc138757f1378b15b",
+  "repoSha": "3355c1ee3e15f2c6c9075f84dafbc9f3ddb5b8e2",
   "bins": {
-    "librarian-conv-state-inject.js": "596145d315d095c9bd8208ea8c16a1832ed0c33117c33921617b8fc6add94e46"
+    "librarian-conv-state-inject.js": "48a62ff8b040fa5bf8313a62ff9deb5692bd5ad5c5e58dd1481c35c8ac426487"
   }
 }

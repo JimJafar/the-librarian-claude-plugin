@@ -11,6 +11,24 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Added
+
+- **Awareness primer injected every turn (spec 041).** The
+  `UserPromptSubmit` hook now also renders the operator-authored awareness
+  primer as a canonical `<librarian>` block, sourced from the additive
+  top-level `primer` field the Librarian's `conv_state_get` returns. The
+  block is byte-identical to `@librarian/core`'s `renderAwarenessPrimer`
+  (`<librarian>\n{primer}\n</librarian>`, body not indented) so the model
+  sees the same primer on every harness. It's global: it's emitted even
+  when there is no conv-state row (its job is the day-one floor), and
+  suppressed when the primer is empty (disabled). Both blocks come from the
+  single existing `conv_state_get` fetch — no second call, no new hook —
+  and the fail-soft contract is unchanged (a Librarian / network / parse
+  failure emits no block and never blocks the turn). The injection handler
+  was updated to parse `conv_state_get`'s post-spec-041 JSON shape
+  (`{ ...row, primer }` with a row, `{ primer }` with none) in place of the
+  retired "No conversation state …" text response.
+
 ### Changed
 
 - **Conv-state block trimmed to `conv_id` + `off_record`.** The per-turn
