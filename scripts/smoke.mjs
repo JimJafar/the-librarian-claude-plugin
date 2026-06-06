@@ -56,10 +56,16 @@ function run(command, args, { env, input }) {
   });
 }
 
-// inject-conv-state.sh emits the canonical block to stdout when the Librarian
-// has a conv_state row for the calling session_id, and STAYS SILENT otherwise.
-// Stdout is forwarded to Claude Code (via hookSpecificOutput.additionalContext),
-// so silence on the no-state branch keeps the model's context clean.
+// inject-conv-state.sh emits the canonical blocks to stdout — the
+// `<conversation-state>` block when the Librarian has a conv_state row for
+// the calling session_id, AND the `<librarian>` awareness-primer block when
+// the server returns a non-empty `primer` (spec 041, injected every turn,
+// even with no row). It STAYS SILENT when there's nothing to emit. Stdout is
+// forwarded to Claude Code (via hookSpecificOutput.additionalContext), so
+// silence keeps the model's context clean.
+//
+// Since spec 041 A2 the `conv_state_get` response is ALWAYS a JSON object:
+// `{ ...row, primer }` with a row, or `{ primer }` with no row.
 async function injectConvStateSmoke() {
   const injectScript = path.join(root, "scripts", "inject-conv-state.sh");
   const baseEvent = (sessionId) =>
@@ -70,19 +76,17 @@ async function injectConvStateSmoke() {
       prompt: "hello",
     });
 
-  // 1. Conv-state hit → bin emits the additionalContext envelope.
-  {
+  // The canonical `<librarian>` block bytes (spec 041, byte-identical across
+  // every harness): `<librarian>\n{primer}\n</librarian>`, body NOT indented.
+  const PRIMER_TEXT = "You have The Librarian: durable, cross-session memory.";
+  const EXPECTED_PRIMER_BLOCK = `<librarian>\n${PRIMER_TEXT}\n</librarian>`;
+
+  // Helper: drive the bin against a fake /mcp that returns `responseText` as
+  // the conv_state_get result text, with the standard smoke env + event.
+  const drive = async (responseText) => {
     const { server, url } = await startServer((name) => {
       if (name !== "conv_state_get") fail(`inject hit unexpected tool ${name}`);
-      return JSON.stringify({
-        conv_id: "claude:smoke",
-        harness: "claude-code",
-        domain: "coding",
-        session_id: "ses_attached",
-        off_record: false,
-        created_at: "2026-05-27T00:00:00.000Z",
-        updated_at: "2026-05-27T00:00:00.000Z",
-      });
+      return responseText;
     });
     const r = await run("bash", [injectScript], {
       env: {
@@ -93,12 +97,28 @@ async function injectConvStateSmoke() {
       input: baseEvent("smoke"),
     });
     server.close();
-    if (r.status !== 0) fail(`inject exited ${r.status} on the hit path\n${r.stderr}`);
+    return r;
+  };
+
+  // 1. Row + primer → BOTH blocks in additionalContext.
+  {
+    const r = await drive(
+      JSON.stringify({
+        conv_id: "claude:smoke",
+        harness: "claude-code",
+        session_id: "ses_attached",
+        off_record: false,
+        created_at: "2026-05-27T00:00:00.000Z",
+        updated_at: "2026-05-27T00:00:00.000Z",
+        primer: PRIMER_TEXT,
+      }),
+    );
+    if (r.status !== 0) fail(`inject exited ${r.status} on the row+primer path\n${r.stderr}`);
     let parsed;
     try {
       parsed = JSON.parse(r.stdout);
     } catch {
-      fail(`inject stdout was not JSON on the hit path: ${r.stdout}`);
+      fail(`inject stdout was not JSON on the row+primer path: ${r.stdout}`);
     }
     const ctx = parsed.hookSpecificOutput?.additionalContext;
     if (!ctx || !ctx.includes("<conversation-state>")) {
@@ -106,17 +126,74 @@ async function injectConvStateSmoke() {
     }
     if (!ctx.includes("conv_id: claude:smoke")) fail(`block missing conv_id`);
     if (!ctx.includes("off_record: false")) fail(`block missing off_record`);
-    // The block is trimmed to conv_id + off_record — domain / session_id are
-    // retired and must NOT leak into the rendered block even when the wire row
-    // still carries them.
+    // The conv-state block is trimmed to conv_id + off_record — retired
+    // fields must NOT leak even when the wire row still carries them.
     if (ctx.includes("domain:")) fail(`block leaked retired domain line`);
     if (ctx.includes("session_id:")) fail(`block leaked retired session_id line`);
+    // The `<librarian>` primer block is present and byte-identical.
+    if (!ctx.includes(EXPECTED_PRIMER_BLOCK)) {
+      fail(`inject did not emit the byte-identical <librarian> block: ${JSON.stringify(ctx)}`);
+    }
   }
 
-  // 2. No conv_state row → bin stays silent.
+  // 2. NO row + primer → the `<librarian>` block is STILL emitted (the
+  //    primer is global; a null row must NOT suppress it). No conv-state
+  //    block, since there's no row.
   {
-    const { server, url } = await startServer(
-      () => "No conversation state for conv_id claude:smoke.",
+    const r = await drive(JSON.stringify({ primer: PRIMER_TEXT }));
+    if (r.status !== 0) fail(`inject exited ${r.status} on the no-row+primer path\n${r.stderr}`);
+    let parsed;
+    try {
+      parsed = JSON.parse(r.stdout);
+    } catch {
+      fail(`inject stdout was not JSON on the no-row+primer path: ${r.stdout}`);
+    }
+    const ctx = parsed.hookSpecificOutput?.additionalContext;
+    if (ctx !== EXPECTED_PRIMER_BLOCK) {
+      fail(
+        `no-row primer: additionalContext must be EXACTLY the byte-identical ` +
+          `<librarian> block (no conv-state block); got: ${JSON.stringify(ctx)}`,
+      );
+    }
+  }
+
+  // 3. NO row + empty primer (disabled) → bin stays silent.
+  {
+    const r = await drive(JSON.stringify({ primer: "" }));
+    if (r.status !== 0) fail(`inject exited ${r.status} on the no-row+empty-primer path\n${r.stderr}`);
+    if (r.stdout !== "")
+      fail(`inject leaked stdout on the no-row+empty-primer path: ${JSON.stringify(r.stdout)}`);
+  }
+
+  // 4. Row + empty primer → ONLY the conv-state block (no `<librarian>`).
+  {
+    const r = await drive(
+      JSON.stringify({
+        conv_id: "claude:smoke",
+        off_record: true,
+        primer: "",
+      }),
+    );
+    if (r.status !== 0) fail(`inject exited ${r.status} on the row+empty-primer path\n${r.stderr}`);
+    const ctx = JSON.parse(r.stdout).hookSpecificOutput?.additionalContext;
+    if (!ctx || !ctx.includes("<conversation-state>"))
+      fail(`row+empty-primer: missing conv-state block: ${r.stdout}`);
+    if (ctx.includes("<librarian>"))
+      fail(`row+empty-primer: leaked a <librarian> block for an empty primer: ${r.stdout}`);
+    if (!ctx.includes("off_record: true")) fail(`row+empty-primer: missing off_record: ${r.stdout}`);
+  }
+
+  // 5. conv_state_get hard failure (HTTP 500) → no block, turn proceeds
+  //    (fail-soft contract unchanged).
+  {
+    const server = http.createServer((_req, res) => {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: { code: -32000, message: "boom" } }));
+    });
+    const url = await new Promise((resolve) =>
+      server.listen(0, "127.0.0.1", () =>
+        resolve(`http://127.0.0.1:${server.address().port}/mcp`),
+      ),
     );
     const r = await run("bash", [injectScript], {
       env: {
@@ -127,12 +204,12 @@ async function injectConvStateSmoke() {
       input: baseEvent("smoke"),
     });
     server.close();
-    if (r.status !== 0) fail(`inject exited ${r.status} on the no-state path\n${r.stderr}`);
+    if (r.status !== 0) fail(`inject exited ${r.status} on the server-error path\n${r.stderr}`);
     if (r.stdout !== "")
-      fail(`inject leaked stdout on the no-state path: ${JSON.stringify(r.stdout)}`);
+      fail(`inject leaked stdout on the server-error path: ${JSON.stringify(r.stdout)}`);
   }
 
-  // 3. Non-UserPromptSubmit events are no-ops.
+  // 6. Non-UserPromptSubmit events are no-ops.
   {
     const { server } = await startServer(() => {
       fail("inject called MCP on a non-UserPromptSubmit event");
@@ -152,7 +229,7 @@ async function injectConvStateSmoke() {
       fail(`inject leaked stdout on the other-event path: ${JSON.stringify(r.stdout)}`);
   }
 
-  // 4. Misconfig (no token) is silent — the fail-soft contract.
+  // 7. Misconfig (no token) is silent — the fail-soft contract.
   {
     const r = await run("bash", [injectScript], {
       env: {
@@ -168,7 +245,9 @@ async function injectConvStateSmoke() {
   }
 
   console.log(
-    "smoke: inject-conv-state.sh emits additionalContext on hit, stays silent on no-state / other-event / misconfig ✓",
+    "smoke: inject-conv-state.sh emits the conv-state + byte-identical <librarian> primer " +
+      "blocks (primer survives a null row), stays silent on empty-primer / server-error / " +
+      "other-event / misconfig ✓",
   );
 }
 

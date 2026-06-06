@@ -18,14 +18,18 @@ async function main() {
   if (!convId) process.exit(0);
   const config = readConfig();
   if (!config) process.exit(0);
-  const state = await safeGetState(config, convId);
-  if (!state) process.exit(0);
-  const block = renderConvStateBlock(state);
+  const result = await safeGetState(config, convId);
+  if (!result) process.exit(0);
+  const blocks = [];
+  if (result.state) blocks.push(renderConvStateBlock(result.state));
+  const primerBlock = renderAwarenessPrimer(result.primer);
+  if (primerBlock) blocks.push(primerBlock);
+  if (blocks.length === 0) process.exit(0);
   process.stdout.write(
     JSON.stringify({
       hookSpecificOutput: {
         hookEventName: "UserPromptSubmit",
-        additionalContext: block
+        additionalContext: blocks.join("\n")
       }
     })
   );
@@ -115,16 +119,17 @@ async function callTool(config, name, args) {
   if (!Array.isArray(content) || content.length === 0) return null;
   const text = content[0]?.text;
   if (typeof text !== "string") return null;
-  if (text.startsWith("No conversation state")) return null;
+  let parsed;
   try {
-    const parsed = JSON.parse(text);
-    if (typeof parsed === "object" && parsed && typeof parsed.conv_id === "string") {
-      return parsed;
-    }
+    parsed = JSON.parse(text);
   } catch {
     return null;
   }
-  return null;
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const record = parsed;
+  const state = typeof record.conv_id === "string" ? record : null;
+  const primer = typeof record.primer === "string" ? record.primer : "";
+  return { state, primer };
 }
 function renderConvStateBlock(state) {
   const offRecord = state.off_record ? "true" : "false";
@@ -134,4 +139,8 @@ function renderConvStateBlock(state) {
     `  off_record: ${offRecord}`,
     "</conversation-state>"
   ].join("\n");
+}
+function renderAwarenessPrimer(primer) {
+  if (!primer) return "";
+  return ["<librarian>", primer, "</librarian>"].join("\n");
 }
