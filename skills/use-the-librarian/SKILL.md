@@ -34,7 +34,8 @@ Typing `/` autocompletes these:
   project_key + cwd by default, broadens by dropping filters), then atomically claims the
   selected row and injects its document into your conversation.
 - **`/learn`** — extract durable lessons from the current conversation and feed
-  user-approved ones into `propose_memory`. Replaces the implicit "extract lessons from
+  user-approved ones into `remember` (non-protected lessons file directly; protected
+  categories still route to proposals). Replaces the implicit "extract lessons from
   sessions" job the curator used to do.
 - **`/toggle-private`** — toggle the in-conversation private-mode marker. Pure in-context
   — no MCP call, no server flag, no hook. While `[librarian:private=on]` is the most
@@ -74,7 +75,7 @@ writing durable memory. Mitigations:
 ## Boundaries
 
 - Handoffs are claimable narratives, not durable memory. They expire when claimed; promote
-  durable facts via `/learn` → `propose_memory`.
+  durable facts via `/learn` → `remember`.
 - Use `remember` / `propose_memory` for facts that should survive across conversations.
   Protected categories (identity, relationship) always route to proposals.
 - Do not write to durable memory while `[librarian:private=on]` is the most recent marker

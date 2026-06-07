@@ -1,8 +1,8 @@
 ---
-description: Extract durable lessons from this conversation into memory proposals
+description: Extract durable lessons from this conversation into durable memory
 ---
 
-Find candidate lessons in the current conversation and feed the user-approved ones into `propose_memory` (the existing proposal flow handles protected categories the usual way).
+Find candidate lessons in the current conversation and feed the user-approved ones into `remember` (the user has already picked them, so non-protected lessons are filed directly; the server still routes protected categories to the proposal queue).
 
 ## Privacy gate
 
@@ -32,12 +32,12 @@ Render the candidate lessons as a numbered multi-select list. For each, show a o
 
 ## Save
 
-For each chosen lesson, call `propose_memory` (not `remember`) with:
+For each chosen lesson, call `remember` with:
 
 - `title`, `body`, `tags`, `applies_to` — derived from the candidate.
 
-Protected categories (identity, relationship) are routed through the proposal flow automatically by the server; nothing extra to do here.
+The user picking the lesson in the step above _is_ the review, so don't double-gate it behind a proposal — `remember` files non-protected lessons directly (deduping/merging against existing memory). Protected categories (identity, relationship) are still auto-routed to the proposal queue by the server; nothing extra to do here.
 
 ## Report
 
-Tell the user how many lessons landed as proposals and where they can review them ([dashboard /proposals](http://localhost:3838/proposals)).
+Tell the user how many lessons were saved, and — if any were protected — how many became proposals to review at [dashboard /proposals](http://localhost:3838/proposals).

@@ -11,6 +11,17 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Changed
+
+- **`/learn` now saves picked lessons via `remember` instead of
+  `propose_memory`.** Picking a lesson in the `/learn` multi-select already
+  _is_ the review, so the old flow double-gated it behind a dashboard
+  proposal. `/learn` now calls `remember`, which files non-protected lessons
+  directly (deduped/merged against existing memory) while the server still
+  routes protected categories (identity, relationship) to the proposal queue.
+  Coordinated with the server fix that routes `propose_memory` through the
+  curator (the-librarian ADR 0004).
+
 ## [0.3.0] — 2026-06-07
 
 ### Security
