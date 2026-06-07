@@ -11,6 +11,23 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+### Security
+
+- **`redirect: "error"` on the token-carrying `conv_state_get` fetch
+  (AGENTS.md §2 hardening).** The `UserPromptSubmit` injection hook's
+  outbound `fetch` to the Librarian sends the Bearer token in the
+  `Authorization` header but previously used `fetch`'s default
+  `redirect: "follow"`. A `3xx` from the Librarian host would have been
+  followed automatically, re-sending the `Authorization` header to the
+  redirect target and leaking the Bearer token cross-origin. The fetch now
+  sets `redirect: "error"`, so a `3xx` throws instead of being followed;
+  the throw is caught by the existing fail-soft path and degrades to "no
+  block, turn proceeds", exactly like any other network error. This brings
+  the Claude plugin in line with the other four harnesses (Codex / Pi /
+  OpenCode route through a hardened `mcp-client`; Hermes uses a
+  no-redirect urllib handler) — it was the only plugin still inheriting
+  the default. No user-visible behaviour change on the happy path.
+
 ### Added
 
 - **Awareness primer injected every turn (spec 041).** The
