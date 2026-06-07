@@ -11,6 +11,8 @@ changes from this point forward are catalogued here.
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-07
+
 ### Security
 
 - **`redirect: "error"` on the token-carrying `conv_state_get` fetch
