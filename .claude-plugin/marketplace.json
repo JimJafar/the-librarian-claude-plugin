@@ -10,7 +10,7 @@
       "name": "the-librarian",
       "source": "./",
       "description": "Durable memory + cross-harness session lifecycle, backed by a remote Librarian MCP server.",
-      "version": "0.1.0",
+      "version": "0.3.0",
       "license": "Apache-2.0",
       "keywords": ["memory", "sessions", "mcp"]
     }
