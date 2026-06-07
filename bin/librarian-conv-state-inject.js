@@ -107,6 +107,14 @@ async function callTool(config, name, args) {
         Authorization: `Bearer ${config.token}`
       },
       body,
+      // AGENTS.md §2: this request carries the Bearer token in the
+      // Authorization header. With fetch's default `redirect: "follow"`, a
+      // 3xx from the Librarian host would be followed automatically — re-
+      // sending the Authorization header to the redirect target and leaking
+      // the token cross-origin. `redirect: "error"` makes a 3xx throw instead;
+      // the throw is caught by `safeGetState` and degrades fail-soft (no
+      // block, turn proceeds), exactly like any other network error.
+      redirect: "error",
       signal: controller.signal
     });
   } finally {

@@ -11,6 +11,7 @@
 // smoke check here.
 
 import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -244,10 +245,91 @@ async function injectConvStateSmoke() {
       fail(`inject leaked stdout on the misconfig path: ${JSON.stringify(r.stdout)}`);
   }
 
+  // 8. AGENTS.md §2 hardening: the token-carrying conv_state_get fetch must
+  //    set `redirect: "error"` so a 3xx from the server host throws instead
+  //    of being silently followed (which would re-send the Authorization
+  //    header cross-origin and leak the Bearer token). Pin the option on the
+  //    COMMITTED, distributable bundle so a regen that drops it fails CI.
+  {
+    const bundle = readFileSync(
+      path.join(root, "bin", "librarian-conv-state-inject.js"),
+      "utf8",
+    );
+    if (!/redirect:\s*["']error["']/.test(bundle)) {
+      fail(
+        `the conv_state_get fetch must set redirect:"error" (AGENTS.md §2 — a ` +
+          `followed 3xx leaks the Bearer token cross-origin); not found in the ` +
+          `committed bin. Run \`npm run build\` after fixing src/.`,
+      );
+    }
+  }
+
+  // 9. A 3xx redirect from the Librarian host degrades fail-soft AND never
+  //    re-sends the token cross-origin. The fetch sets redirect:"error", so
+  //    the 302 throws (instead of being followed to the redirect target) and
+  //    is swallowed by the existing try/catch → no block, turn proceeds. We
+  //    also assert the redirect TARGET never receives the Authorization
+  //    header (the cross-origin token leak this fix exists to prevent).
+  {
+    // Leak-catcher: stands in for the redirect target (a different origin).
+    // Records whether it ever saw the Bearer token; returns a valid primer
+    // response so that IF the bin followed the redirect it would BOTH leak
+    // the token here AND emit a block — making a regression loud.
+    let leakedAuth = null;
+    let leakHit = false;
+    const leakServer = http.createServer((req, res) => {
+      leakHit = true;
+      leakedAuth = req.headers.authorization ?? null;
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(rpc(JSON.stringify({ primer: "LEAKED" })));
+    });
+    const leakUrl = await new Promise((resolve) =>
+      leakServer.listen(0, "127.0.0.1", () =>
+        resolve(`http://127.0.0.1:${leakServer.address().port}/mcp`),
+      ),
+    );
+
+    // Redirector: the Librarian host returns a 302 to the leak-catcher.
+    const redirectServer = http.createServer((_req, res) => {
+      res.writeHead(302, { Location: leakUrl });
+      res.end();
+    });
+    const redirectUrl = await new Promise((resolve) =>
+      redirectServer.listen(0, "127.0.0.1", () =>
+        resolve(`http://127.0.0.1:${redirectServer.address().port}/mcp`),
+      ),
+    );
+
+    const r = await run("bash", [injectScript], {
+      env: {
+        CLAUDE_PLUGIN_ROOT: root,
+        LIBRARIAN_MCP_URL: redirectUrl,
+        LIBRARIAN_AGENT_TOKEN: "tok_smoke",
+      },
+      input: baseEvent("smoke"),
+    });
+    redirectServer.close();
+    leakServer.close();
+
+    if (r.status !== 0) fail(`inject exited ${r.status} on the redirect path\n${r.stderr}`);
+    if (r.stdout !== "")
+      fail(
+        `redirect path: a 3xx must degrade fail-soft (no block); got stdout: ` +
+          `${JSON.stringify(r.stdout)} (the bin followed the redirect — redirect:"error" missing?)`,
+      );
+    if (leakHit)
+      fail(
+        `redirect path: the bin followed the 302 and contacted the redirect ` +
+          `target (Authorization=${JSON.stringify(leakedAuth)}). redirect:"error" must ` +
+          `block cross-origin token leakage.`,
+      );
+  }
+
   console.log(
     "smoke: inject-conv-state.sh emits the conv-state + byte-identical <librarian> primer " +
       "blocks (primer survives a null row), stays silent on empty-primer / server-error / " +
-      "other-event / misconfig ✓",
+      "other-event / misconfig; pins redirect:\"error\" on the token-carrying fetch and " +
+      "degrades fail-soft on a 3xx without leaking the token cross-origin ✓",
   );
 }
 
