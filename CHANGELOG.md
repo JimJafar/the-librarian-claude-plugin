@@ -9,7 +9,7 @@ This changelog starts at v0.1.0 — the first version likely to see public
 adoption. The pre-v0.1.0 development history lives in the git log; only
 changes from this point forward are catalogued here.
 
-## [Unreleased]
+## [0.3.1] — 2026-06-08
 
 ### Changed
 
@@ -21,6 +21,11 @@ changes from this point forward are catalogued here.
   routes protected categories (identity, relationship) to the proposal queue.
   Coordinated with the server fix that routes `propose_memory` through the
   curator (the-librarian ADR 0004).
+- **Release process automated — every merge to `main` is a release.** Added
+  `.github/workflows/release.yml` (tags + publishes the GitHub release on a
+  version-bumping merge) and a `scripts/check-release.mjs` guard wired into CI.
+  The CHANGELOG no longer carries an `[Unreleased]` section; every PR bumps the
+  version (`package.json` + both `.claude-plugin` manifests) with a dated entry.
 
 ## [0.3.0] — 2026-06-07
 
@@ -209,5 +214,7 @@ Public baseline. A [Claude Code](https://claude.com/claude-code) plugin for
   `bin/librarian-mcp-call.js` are committed esbuild outputs; users have no
   `npm install` step.
 
-[Unreleased]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.1.0...HEAD
+[0.3.1]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.3.0...v0.3.1
+[0.3.0]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/JimJafar/the-librarian-claude-plugin/releases/tag/v0.1.0
