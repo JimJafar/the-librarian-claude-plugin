@@ -1,6 +1,6 @@
 {
   "name": "the-librarian-claude-plugin",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Claude Code plugin for The Librarian: memory + cross-harness handoffs over a remote Librarian MCP server.",
   "license": "Apache-2.0",
@@ -9,7 +9,8 @@
     "build": "node scripts/build-bundle.mjs",
     "validate": "node scripts/validate.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check:release": "node --no-warnings scripts/check-release.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
