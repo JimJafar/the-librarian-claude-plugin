@@ -9,6 +9,31 @@ This changelog starts at v0.1.0 — the first version likely to see public
 adoption. The pre-v0.1.0 development history lives in the git log; only
 changes from this point forward are catalogued here.
 
+## [0.4.0] — 2026-06-12
+
+### Changed
+
+- **Aligned to the server's 9-verb agent surface (the-librarian ADR
+  0006).** The slimmed MCP surface is `recall`, `remember`,
+  `flag_memory`, `store_handoff`, `list_handoffs`, `claim_handoff`,
+  `list_skills`, `get_skill`, `search_references` (plus the internal
+  `conv_state_*` primitives). The plugin no longer references the
+  retired verbs: `verify_memory` → `flag_memory(memory_id, reason)`,
+  `propose_memory` → `remember` (the server's inbox routing subsumes
+  it), `start_context` → dropped in favour of the per-turn
+  `conv_state_get` primer the injection hook already emits, and
+  `session_manifest` / `find_skills` → `list_skills`. README, AGENTS.md,
+  and the `/toggle-private` private-mode contract updated to match.
+
+### Removed
+
+- **Dropped the bundled `use-the-librarian` skill (ADR 0006 #6).** There
+  is no longer an auto-loaded "how to use" skill; the per-turn conv-state
+  primer and the MCP tools' own descriptions are the teaching surface.
+  `skills/use-the-librarian/` is deleted; nothing in the manifests,
+  validate step, or tests referenced it explicitly, so no further
+  cleanup was needed.
+
 ## [0.3.1] — 2026-06-08
 
 ### Changed
@@ -214,6 +239,7 @@ Public baseline. A [Claude Code](https://claude.com/claude-code) plugin for
   `bin/librarian-mcp-call.js` are committed esbuild outputs; users have no
   `npm install` step.
 
+[0.4.0]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/JimJafar/the-librarian-claude-plugin/compare/v0.1.0...v0.2.0

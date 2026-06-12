@@ -10,10 +10,11 @@ point at (local or remote).
 
 ## Features
 
-- **Memory tools** — `recall`, `remember`, `propose_memory`, `verify_memory`, `update_memory`,
-  `list_proposals` as native Claude Code MCP tools.
+- **Memory tools** — `recall`, `remember`, `flag_memory` as native Claude Code MCP tools.
 - **Handoff tools** — `store_handoff`, `list_handoffs`, `claim_handoff` for atomic
   cross-harness handover.
+- **Skill tools** — `list_skills`, `get_skill`, `search_references` for working-style
+  preambles and reference lookup.
 - **Four slash commands** — `/handoff`, `/takeover`, `/learn`, `/toggle-private`.
 - **Per-turn conv-state injection** — a `UserPromptSubmit` hook keeps the model aware of
   the conversation state (carrying the off-record marker, and surviving compaction).
@@ -66,8 +67,9 @@ The four slash commands (`/handoff`, `/takeover`, `/learn`, `/toggle-private`) a
 agent operations — they call MCP tools directly; nothing is recorded server-side until you
 invoke one.
 
-Behavioural guidance (verify-after-recall, private-mode contract, handoff template) ships
-as the `use-the-librarian` skill, applied automatically.
+Behavioural guidance (the working-style preamble, recall/remember/flag loop, private-mode
+contract, handoff template) rides the per-turn conv-state primer the injection hook emits,
+plus the MCP tools' own descriptions — no bundled "how to use" skill is shipped.
 
 ## License
 

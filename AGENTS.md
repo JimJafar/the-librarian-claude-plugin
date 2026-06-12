@@ -32,8 +32,8 @@ Post-sessions-rethink (PR 2), private mode is **in-conversation only**
 — a `[librarian:private=on|off]` marker injected by `/toggle-private`.
 There is no server flag, no plugin hook, no persistence, and no
 natural-language detector. While `[librarian:private=on]` is the
-most-recent marker, the agent must not call `remember` /
-`propose_memory`; `recall` is still allowed. `/handoff` and `/learn`
+most-recent marker, the agent must not call `remember`; `recall` is
+still allowed. `/handoff` and `/learn`
 require explicit user confirmation while private. The marker survives
 the turn but **conversation compaction can erase it** — this is a
 documented limitation accepted in exchange for a zero-dependency
